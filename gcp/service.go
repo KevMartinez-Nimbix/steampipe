@@ -12,6 +12,7 @@ import (
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/dns/v1"
+	"google.golang.org/api/file/v1"
 	"google.golang.org/api/iam/v1"
 	"google.golang.org/api/logging/v2"
 	"google.golang.org/api/monitoring/v3"
@@ -351,6 +352,27 @@ func KMSService(ctx context.Context, d *plugin.QueryData) (*cloudkms.Service, er
 
 	// so it was not in cache - create service
 	svc, err := cloudkms.NewService(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	d.ConnectionManager.Cache.Set(serviceCacheKey, svc)
+	return svc, nil
+}
+
+// FileStoreService returns the service connection for GCP Filestore Service
+func FileStoreService(ctx context.Context, d *plugin.QueryData) (*file.Service, error) {
+	//have we already created and cached the service?
+	serviceCacheKey := "FileStoreService"
+	if cachedData, ok := d.ConnectionManager.Cache.Get(serviceCacheKey); ok {
+		return cachedData.(*file.Service), nil
+	}
+
+	// To get config arguments from plugin config file
+	opts := setSessionConfig(d.Connection)
+
+	// so it was not in cache - create service
+	svc, err := file.NewService(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
