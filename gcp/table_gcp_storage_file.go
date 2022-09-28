@@ -7,7 +7,6 @@ import (
 	"github.com/turbot/steampipe-plugin-sdk/v3/grpc/proto"
 	"github.com/turbot/steampipe-plugin-sdk/v3/plugin"
 	"github.com/turbot/steampipe-plugin-sdk/v3/plugin/transform"
-	"google.golang.org/api/file/v1"
 )
 
 func tableGcpStorageFile(_ context.Context) *plugin.Table {
@@ -101,12 +100,12 @@ func tableGcpStorageFile(_ context.Context) *plugin.Table {
 // Functions
 func listGcpStorageFile(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
 	//Get project details
-	getProjectCached := plugin.HydrateFunc(getProject).WithCache()
-	projectId, err := getProjectCached(ctx, d, h)
-	if err != nil {
-		return nil, err
-	}
-	project := projectId.(string)
+	//getProjectCached := plugin.HydrateFunc(getProject).WithCache()
+	//projectId, err := getProjectCached(ctx, d, h)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//project := projectId.(string)
 
 	//Create Service Connection
 	service, err := FileStoreService(ctx, d)
@@ -114,15 +113,26 @@ func listGcpStorageFile(ctx context.Context, d *plugin.QueryData, h *plugin.Hydr
 		return nil, err
 	}
 
-	resp := service.Projects.Locations.Instances.List(project).PageSize(100)
-	if err := resp.Pages(ctx, func(page *file.ListInstancesResponse) error {
-		for _, instance := range page.Instances {
+	stringPath := "projects/nimbix-cloud/locations/-"
+	resp, err := service.Projects.Locations.Instances.List(stringPath).Do()
+	if err == nil {
+		for _, instance := range resp.Instances {
 			d.StreamListItem(ctx, instance)
 		}
-		return nil
-	}); err != nil {
+	} else {
 		return nil, err
 	}
+	/*
+		resp := service.Projects.Locations.Instances.List(stringPath) //.PageSize(100)
+		if err := resp.Pages(ctx, func(page *file.ListInstancesResponse) error {
+			for _, instances := range page.Instances {
+				d.StreamListItem(ctx, instance)
+			}
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+	*/
 	return nil, err
 }
 
