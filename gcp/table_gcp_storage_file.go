@@ -2,6 +2,7 @@ package gcp
 
 import (
 	"context"
+	"strings"
 
 	//"github.com/turbot/go-kit/helpers"
 	"github.com/turbot/steampipe-plugin-sdk/v3/grpc/proto"
@@ -23,7 +24,7 @@ func tableGcpStorageFile(_ context.Context) *plugin.Table {
 		},
 		Columns: []*plugin.Column{
 			{
-				Name:        "time_created",
+				Name:        "createTime",
 				Description: "The time when the instance was created.",
 				Type:        proto.ColumnType_TIMESTAMP,
 			},
@@ -43,7 +44,7 @@ func tableGcpStorageFile(_ context.Context) *plugin.Table {
 				Type:        proto.ColumnType_JSON,
 			},
 			{
-				Name:        "default_kms_key_name",
+				Name:        "kmsKeyName",
 				Description: "A Cloud KMS key that will be used to encrypt objects inserted into this bucket, if no encryption method is specified.",
 				Type:        proto.ColumnType_STRING,
 				Transform:   transform.FromField("Encryption.DefaultKmsKeyName"),
@@ -65,7 +66,7 @@ func tableGcpStorageFile(_ context.Context) *plugin.Table {
 			},
 			{
 				//SatifiesPzs
-				Name:        "satisfies_pzs",
+				Name:        "satisfiesPzs",
 				Description: "Output only, Reserved for future use",
 				Type:        proto.ColumnType_BOOL,
 			},
@@ -77,13 +78,13 @@ func tableGcpStorageFile(_ context.Context) *plugin.Table {
 			},
 			{
 				//statusmsg
-				Name:        "stauts_message",
+				Name:        "statusMessage",
 				Description: "Output only, additional information about the instance",
 				Type:        proto.ColumnType_STRING,
 			},
 			{
 				//suspensionreasons
-				Name:        "suspension_reasons",
+				Name:        "suspensionReasons",
 				Description: "Output only, field indicates all the reasons the instance is suspended.",
 				Type:        proto.ColumnType_JSON,
 			},
@@ -100,12 +101,13 @@ func tableGcpStorageFile(_ context.Context) *plugin.Table {
 // Functions
 func listGcpStorageFile(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
 	//Get project details
-	//getProjectCached := plugin.HydrateFunc(getProject).WithCache()
-	//projectId, err := getProjectCached(ctx, d, h)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//project := projectId.(string)
+	getProjectCached := plugin.HydrateFunc(getProject).WithCache()
+	projectId, err := getProjectCached(ctx, d, h)
+	if err != nil {
+		return nil, err
+	}
+	project := projectId.(string)
+	projectPath := strings.Split(project, "/")[0]
 
 	//Create Service Connection
 	service, err := FileStoreService(ctx, d)
@@ -113,7 +115,8 @@ func listGcpStorageFile(ctx context.Context, d *plugin.QueryData, h *plugin.Hydr
 		return nil, err
 	}
 
-	stringPath := "projects/nimbix-cloud/locations/-"
+	//stringPath := "projects/nimbix-cloud/locations/-"
+	stringPath := "projects/" + projectPath + "/locations/-"
 	resp, err := service.Projects.Locations.Instances.List(stringPath).Do()
 	if err == nil {
 		for _, instance := range resp.Instances {
@@ -122,17 +125,6 @@ func listGcpStorageFile(ctx context.Context, d *plugin.QueryData, h *plugin.Hydr
 	} else {
 		return nil, err
 	}
-	/*
-		resp := service.Projects.Locations.Instances.List(stringPath) //.PageSize(100)
-		if err := resp.Pages(ctx, func(page *file.ListInstancesResponse) error {
-			for _, instances := range page.Instances {
-				d.StreamListItem(ctx, instance)
-			}
-			return nil
-		}); err != nil {
-			return nil, err
-		}
-	*/
 	return nil, err
 }
 
