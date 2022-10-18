@@ -117,6 +117,8 @@ func listGcpStorageFile(ctx context.Context, d *plugin.QueryData, h *plugin.Hydr
 
 	//stringPath := "projects/nimbix-cloud/locations/-"
 	stringPath := "projects/" + projectPath + "/locations/-"
+	//logger := plugin.Logger(ctx)
+	//logger.Info("Log message and a variable", stringPath)
 	resp, err := service.Projects.Locations.Instances.List(stringPath).Do()
 	if err == nil {
 		for _, instance := range resp.Instances {
